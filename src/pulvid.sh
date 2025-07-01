@@ -1,6 +1,32 @@
 #!/bin/bash
 
 VERSION="1.0"
+REPO_URL="https://raw.githubusercontent.com/hmartinov/PulVid/main"
+SCRIPT_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.sh"
+SCRIPT_PATH="$HOME/bin/pulvid.sh"
+
+# Проверка за нова версия
+REMOTE_VERSION=$(curl -fs "$REPO_URL/version.txt" 2>/dev/null | tr -d '\r\n ')
+
+if [[ -n "$REMOTE_VERSION" && "$REMOTE_VERSION" != "$VERSION" ]]; then
+    zenity --question \
+        --title="Налична е нова версия" \
+        --text="В момента използвате версия $VERSION.\nДостъпна е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
+    if [[ $? -eq 0 ]]; then
+        TMPFILE=$(mktemp)
+        if curl -fsSL "$SCRIPT_URL" -o "$TMPFILE"; then
+            mv "$TMPFILE" "$SCRIPT_PATH"
+            chmod +x "$SCRIPT_PATH"
+            zenity --info --title="Обновено" --text="PulVid беше успешно обновен до версия $REMOTE_VERSION."
+            exec "$SCRIPT_PATH" "$@"
+            exit 0
+        else
+            zenity --error --title="Грешка при обновяване" --text="Неуспешно изтегляне на новата версия."
+            rm -f "$TMPFILE"
+        fi
+    fi
+fi
+
 SAVE_DIR="$HOME/Videos"
 
 for cmd in yt-dlp ffmpeg zenity xdg-open; do
