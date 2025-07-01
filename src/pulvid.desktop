@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PulVid
+Comment=Графично изтегляне на видеа
+Exec=/home/$USER/bin/pulvid.sh
+Icon=video-download
+Terminal=false
+Type=Application
+Categories=AudioVideo;Network;Utility;
