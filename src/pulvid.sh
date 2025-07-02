@@ -8,20 +8,32 @@ SCRIPT_PATH="$HOME/bin/pulvid.sh"
 # Проверка за нова версия
 REMOTE_VERSION=$(curl -fs "$REPO_URL/version.txt" 2>/dev/null | tr -d '\r\n ')
 
-if [[ -n "$REMOTE_VERSION" && "$REMOTE_VERSION" != "$VERSION" ]]; then
+version_is_newer() {
+    local IFS=.
+    local i ver1=($1) ver2=($2)
+    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do ver1[i]=0; done
+    for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do ver2[i]=0; done
+    for ((i=0; i<${#ver1[@]}; i++)); do
+        if ((10#${ver2[i]} > 10#${ver1[i]})); then return 0; fi
+        if ((10#${ver2[i]} < 10#${ver1[i]})); then return 1; fi
+    done
+    return 1  # equal versions
+}
+
+if [[ -n "$REMOTE_VERSION" ]] && version_is_newer "$VERSION" "$REMOTE_VERSION"; then
     zenity --question \
         --title="Налична е нова версия" \
-        --text="В момента използвате версия $VERSION.\nДостъпна е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
+        --text="Имате версия $VERSION.\nНалична е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
     if [[ $? -eq 0 ]]; then
         TMPFILE=$(mktemp)
         if curl -fsSL "$SCRIPT_URL" -o "$TMPFILE"; then
             mv "$TMPFILE" "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
-            zenity --info --title="Обновено" --text="PulVid беше успешно обновен до версия $REMOTE_VERSION."
+            zenity --info --title="Обновено" --text="Скриптът беше обновен успешно до версия $REMOTE_VERSION."
             exec "$SCRIPT_PATH" "$@"
             exit 0
         else
-            zenity --error --title="Грешка при обновяване" --text="Неуспешно изтегляне на новата версия."
+            zenity --error --title="Грешка" --text="Неуспешно изтегляне на новата версия."
             rm -f "$TMPFILE"
         fi
     fi
