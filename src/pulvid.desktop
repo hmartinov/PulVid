@@ -2,7 +2,7 @@
 Name=PulVid
 Comment=Графично изтегляне на видеа
 Exec=/home/$USER/bin/pulvid.sh
-Icon=video-download
+Icon=pulvid-icon
 Terminal=false
 Type=Application
 Categories=AudioVideo;Network;Utility;

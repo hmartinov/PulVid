@@ -6,6 +6,9 @@ SCRIPT_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.
 DESKTOP_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.desktop"
 SCRIPT_PATH="$HOME/bin/pulvid.sh"
 DESKTOP_PATH="$HOME/.local/share/applications/pulvid.desktop"
+ICON_URL="https://github.com/hmartinov/PDF-to-JPG/releases/latest/download/pulvid-icon.png"
+ICON_PATH="$HOME/.local/share/icons/pulvid-icon.png"
+
 
 # Проверка за нова версия
 REMOTE_VERSION=$(curl -fs "$REPO_URL/version.txt" 2>/dev/null | tr -d '\r\n ')
@@ -29,7 +32,7 @@ if [[ -n "$REMOTE_VERSION" ]] && version_is_newer "$VERSION" "$REMOTE_VERSION"; 
         if curl -fsSL "$SCRIPT_URL" -o "$TMPFILE"; then
             mv "$TMPFILE" "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
-            # Сваляне и на .desktop файла
+			# Сваляне и на .desktop файла
             TMPDESKTOP=$(mktemp)
             if curl -fsSL "$DESKTOP_URL" -o "$TMPDESKTOP"; then
                 mkdir -p "$(dirname "$DESKTOP_PATH")"
@@ -46,6 +49,16 @@ if [[ -n "$REMOTE_VERSION" ]] && version_is_newer "$VERSION" "$REMOTE_VERSION"; 
     fi
 fi
 
+# Сваляне на иконата, ако липсва локално
+if [[ ! -f "$ICON_PATH" ]]; then
+    TMPICON=$(mktemp)
+    if curl -fsSL "$ICON_URL" -o "$TMPICON"; then
+        mkdir -p "$(dirname "$ICON_PATH")"
+        mv "$TMPICON" "$ICON_PATH"
+        chmod +r "$ICON_PATH"
+    fi
+fi
+
 SAVE_DIR="$HOME/Videos"
 
 for cmd in yt-dlp ffmpeg zenity xdg-open; do
@@ -55,20 +68,20 @@ for cmd in yt-dlp ffmpeg zenity xdg-open; do
     fi
 done
 
-# 1. Въвеждане на линк
+# Въвеждане на линк
 URL=$(zenity --entry \
   --title="PulVid – Видео сваляне" \
   --text="Въведи линк към видеото:")
 
 if [[ -z "$URL" ]]; then exit 1; fi
 
-# 2. Чекбокс за конвертиране
+# Чекбокс за конвертиране
 zenity --question \
   --title="PulVid – Конвертиране" \
   --text="Искаш ли файлът да бъде конвертиран в .mp4 след изтеглянето?"
 CONVERT_MP4=$?
 
-# 3. Извличане на формати (показва се прогрес прозорец)
+# Извличане на формати (показва се прогрес прозорец)
 (
   echo "10"
   echo "# Извличане на наличните формати..."
@@ -79,7 +92,7 @@ CONVERT_MP4=$?
 ) | zenity --progress --title="PulVid – Анализ на видео" --text="Моля, изчакай..." \
     --percentage=0 --auto-close --width=400
 
-# 4. Избор на резолюция от комбинируеми видео формати
+# Избор на резолюция от комбинируеми видео формати
 FORMAT_LIST=$(cat /tmp/pulvid_formats.txt | grep -E '^[0-9]+.*(mp4|webm)' | grep -v 'audio only' | grep -E '[0-9]{3,4}p')
 if [[ -z "$FORMAT_LIST" ]]; then
     zenity --error --text="Не могат да бъдат извлечени налични формати."
@@ -97,14 +110,14 @@ VIDEO_ID=$(echo "$CHOICE" | awk '{print $1}')
 RESOLUTION=$(echo "$CHOICE" | awk '{print $3}')
 if [[ -z "$VIDEO_ID" || -z "$RESOLUTION" ]]; then exit 1; fi
 
-# 5. Намиране на най-добро аудио
+# Намиране на най-добро аудио
 AUDIO_ID=$(cat /tmp/pulvid_formats.txt | grep 'audio only' | awk '{print $1}' | sort -n | head -n1)
 if [[ -z "$AUDIO_ID" ]]; then
     zenity --error --text="Неуспешно намиране на аудио формат."
     exit 1
 fi
 
-# 6. Сваляне на видео + аудио (с обединяване)
+# Сваляне на видео + аудио (с обединяване)
 TMPLOG=$(mktemp)
 TMPFILE=$(mktemp)
 
@@ -129,7 +142,7 @@ TMPFILE=$(mktemp)
     --percentage=0 \
     --auto-close
 
-# 7. Обработка
+# Обработка
 if [[ $? -eq 0 ]]; then
     ORIGINAL_FILE=$(tail -n 1 "$TMPFILE")
     DIRPATH=$(dirname "$ORIGINAL_FILE")
@@ -138,7 +151,7 @@ if [[ $? -eq 0 ]]; then
     BASENAME="${FILENAME%.*}"
     FINAL_FILE="$ORIGINAL_FILE"
 
-    # Уникализиране, ако файлът съществува
+# Уникализиране, ако файлът съществува
     INDEX=1
     while [[ -e "$FINAL_FILE" ]]; do
         FINAL_FILE="$DIRPATH/${BASENAME}-$INDEX.$EXT"
@@ -149,7 +162,7 @@ if [[ $? -eq 0 ]]; then
         mv "$ORIGINAL_FILE" "$FINAL_FILE"
     fi
 
-    # 8. Конвертиране (ако е избрано и не е mp4)
+# Конвертиране (ако е избрано и не е mp4)
     CREATED_MP4="no"
     MP4_FILE="$DIRPATH/${BASENAME}.mp4"
     if [[ "$CONVERT_MP4" == "0" && "$EXT" != "mp4" ]]; then
@@ -157,7 +170,7 @@ if [[ $? -eq 0 ]]; then
         CREATED_MP4="yes"
     fi
 
-    # 9. Финално меню
+# Финално меню
     OPTIONS=()
     OPTIONS+=("🎬 Пусни видеото")
     [[ "$CREATED_MP4" == "yes" ]] && OPTIONS+=("🎬 Пусни MP4 видеото")
