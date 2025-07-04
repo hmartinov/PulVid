@@ -3,7 +3,9 @@
 VERSION="1.0"
 REPO_URL="https://raw.githubusercontent.com/hmartinov/PulVid/main"
 SCRIPT_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.sh"
+DESKTOP_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.desktop"
 SCRIPT_PATH="$HOME/bin/pulvid.sh"
+DESKTOP_PATH="$HOME/.local/share/applications/pulvid.desktop"
 
 # Проверка за нова версия
 REMOTE_VERSION=$(curl -fs "$REPO_URL/version.txt" 2>/dev/null | tr -d '\r\n ')
@@ -17,18 +19,23 @@ version_is_newer() {
         if ((10#${ver2[i]} > 10#${ver1[i]})); then return 0; fi
         if ((10#${ver2[i]} < 10#${ver1[i]})); then return 1; fi
     done
-    return 1  # equal versions
+    return 1
 }
 
 if [[ -n "$REMOTE_VERSION" ]] && version_is_newer "$VERSION" "$REMOTE_VERSION"; then
-    zenity --question \
-        --title="Налична е нова версия" \
-        --text="Имате версия $VERSION.\nНалична е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
+    zenity --question         --title="Налична е нова версия"         --text="Имате версия $VERSION.\nНалична е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
     if [[ $? -eq 0 ]]; then
         TMPFILE=$(mktemp)
         if curl -fsSL "$SCRIPT_URL" -o "$TMPFILE"; then
             mv "$TMPFILE" "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
+            # Сваляне и на .desktop файла
+            TMPDESKTOP=$(mktemp)
+            if curl -fsSL "$DESKTOP_URL" -o "$TMPDESKTOP"; then
+                mkdir -p "$(dirname "$DESKTOP_PATH")"
+                mv "$TMPDESKTOP" "$DESKTOP_PATH"
+                chmod +x "$DESKTOP_PATH"
+            fi
             zenity --info --title="Обновено" --text="Скриптът беше обновен успешно до версия $REMOTE_VERSION."
             exec "$SCRIPT_PATH" "$@"
             exit 0
