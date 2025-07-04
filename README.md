@@ -13,6 +13,7 @@ Designed for **Linux (Lubuntu/XFCE)** environments and optimized for practical d
 - Optionally converts downloaded video to `.mp4` with a checkbox
 - Uses **zenity GUI** for interaction – no terminal needed
 - Displays buttons to open video or folder after download
+- Automatically downloads the app icon if missing and places it in the correct folder (`~/.local/share/icons/`).
 
 ## Requirements
 
