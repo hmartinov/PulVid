@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=PulVid
 Comment=Графично изтегляне на видеа
-Exec=/home/$USER/bin/pulvid.sh
+Exec=sh -c '~/bin/pulvid.sh'
 Icon=pulvid-icon
 Terminal=false
 Type=Application
