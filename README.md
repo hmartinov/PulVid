@@ -82,7 +82,7 @@ MIT License – free for personal and commercial use.
 ## Author
 
 H. Martinov  
-[hmartinov@dmail.ai](mailto:hmartinov@dmail.ai)  
+[hristian18@gmail.com](mailto:hristian18@gmail.com)  
 [GitHub](https://github.com/hmartinov/PulVid)
 
 ---
