@@ -15,6 +15,8 @@ All notable changes to this project will be documented in this file.
 - .desktop file in ~/.local/share/applications/ no longer marked as executable (chmod 644)
 - Desktop shortcut now marked as trusted via gio set for proper behavior in Lubuntu/LXDE
 - Exec path in pulvid.desktop updated to use bash -c with $HOME expansion for reliable launching
+- Menu not refreshing after install – added update-desktop-database and lxpanelctl restart
+- App icon not showing in menu – icon path now written as full absolute path during installation
 
 ---
 
