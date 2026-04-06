@@ -9,19 +9,25 @@ DESKTOP_FILE="pulvid.desktop"
 echo "== Инсталация на PulVid =="
 echo
 
-# Инсталиране на зависимости
 echo "⏳ Проверка за зависимости..."
 
 REQUIRED=("ffmpeg" "zenity" "xdg-open" "curl")
+MISSING=()
+
 for pkg in "${REQUIRED[@]}"; do
     if ! command -v "$pkg" >/dev/null 2>&1; then
-        echo "📦 Липсва: $pkg – ще бъде инсталиран..."
-        sudo apt update
-        sudo apt install -y "$pkg"
+        echo "❌ Липсва: $pkg"
+        MISSING+=("$pkg")
     else
         echo "✅ Наличен: $pkg"
     fi
 done
+
+if [[ ${#MISSING[@]} -gt 0 ]]; then
+    echo "📦 Инсталиране на липсващи пакети: ${MISSING[*]}"
+    sudo apt update
+    sudo apt install -y "${MISSING[@]}"
+fi
 
 # Инсталиране на последна версия на yt-dlp
 echo
@@ -40,13 +46,17 @@ cp "$SCRIPT_FILE" "$INSTALL_DIR/"
 cp "$DESKTOP_FILE" "$DESKTOP_DIR/"
 
 chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
-chmod +x "$DESKTOP_DIR/$DESKTOP_FILE"
+chmod 644 "$DESKTOP_DIR/$DESKTOP_FILE"
 
 # По избор: десктоп икона
 read -p "🖥️ Искаш ли икона на десктопа? (y/n): " ANSWER
 if [[ "$ANSWER" == "y" || "$ANSWER" == "Y" ]]; then
     cp "$DESKTOP_FILE" "$HOME/Desktop/"
     chmod +x "$HOME/Desktop/$DESKTOP_FILE"
+    # Маркиране като доверен файл (за среди, поддържащи gio)
+    if command -v gio >/dev/null 2>&1; then
+        gio set "$HOME/Desktop/$DESKTOP_FILE" metadata::trusted true 2>/dev/null
+    fi
     echo "✅ Икона е добавена на десктопа."
 fi
 
