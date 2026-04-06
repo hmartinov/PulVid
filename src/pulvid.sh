@@ -1,12 +1,12 @@
 #!/bin/bash
 
-VERSION="1.0"
+VERSION="1.1"
 REPO_URL="https://raw.githubusercontent.com/hmartinov/PulVid/main"
 SCRIPT_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.sh"
 DESKTOP_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid.desktop"
 SCRIPT_PATH="$HOME/bin/pulvid.sh"
 DESKTOP_PATH="$HOME/.local/share/applications/pulvid.desktop"
-ICON_URL="https://github.com/hmartinov/PDF-to-JPG/releases/latest/download/pulvid-icon.png"
+ICON_URL="https://github.com/hmartinov/PulVid/releases/latest/download/pulvid-icon.png"
 ICON_PATH="$HOME/.local/share/icons/pulvid-icon.png"
 
 
@@ -14,25 +14,29 @@ ICON_PATH="$HOME/.local/share/icons/pulvid-icon.png"
 REMOTE_VERSION=$(curl -fs "$REPO_URL/version.txt" 2>/dev/null | tr -d '\r\n ')
 
 version_is_newer() {
+    # $1 = локална версия, $2 = отдалечена версия
+    # Връща 0 (успех) ако отдалечената е по-нова
     local IFS=.
-    local i ver1=($1) ver2=($2)
-    for ((i=${#ver1[@]}; i<${#ver2[@]}; i++)); do ver1[i]=0; done
-    for ((i=${#ver2[@]}; i<${#ver1[@]}; i++)); do ver2[i]=0; done
-    for ((i=0; i<${#ver1[@]}; i++)); do
-        if ((10#${ver2[i]} > 10#${ver1[i]})); then return 0; fi
-        if ((10#${ver2[i]} < 10#${ver1[i]})); then return 1; fi
+    local i local_ver=($1) remote_ver=($2)
+    for ((i=${#local_ver[@]}; i<${#remote_ver[@]}; i++)); do local_ver[i]=0; done
+    for ((i=${#remote_ver[@]}; i<${#local_ver[@]}; i++)); do remote_ver[i]=0; done
+    for ((i=0; i<${#local_ver[@]}; i++)); do
+        if ((10#${remote_ver[i]} > 10#${local_ver[i]})); then return 0; fi
+        if ((10#${remote_ver[i]} < 10#${local_ver[i]})); then return 1; fi
     done
     return 1
 }
 
 if [[ -n "$REMOTE_VERSION" ]] && version_is_newer "$VERSION" "$REMOTE_VERSION"; then
-    zenity --question         --title="Налична е нова версия"         --text="Имате версия $VERSION.\nНалична е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
+    zenity --question \
+        --title="Налична е нова версия" \
+        --text="Имате версия $VERSION.\nНалична е нова версия: $REMOTE_VERSION\n\nИскате ли да я изтеглите сега?"
     if [[ $? -eq 0 ]]; then
         TMPFILE=$(mktemp)
         if curl -fsSL "$SCRIPT_URL" -o "$TMPFILE"; then
             mv "$TMPFILE" "$SCRIPT_PATH"
             chmod +x "$SCRIPT_PATH"
-			# Сваляне и на .desktop файла
+            # Сваляне и на .desktop файла
             TMPDESKTOP=$(mktemp)
             if curl -fsSL "$DESKTOP_URL" -o "$TMPDESKTOP"; then
                 mkdir -p "$(dirname "$DESKTOP_PATH")"
@@ -121,19 +125,14 @@ fi
 TMPLOG=$(mktemp)
 TMPFILE=$(mktemp)
 
-(
-  echo "0"
-  echo "# Сваляне на видеото..."
-  sleep 0.5
-
-  yt-dlp -f "${VIDEO_ID}+${AUDIO_ID}" \
+yt-dlp -f "${VIDEO_ID}+${AUDIO_ID}" \
     -o "$SAVE_DIR/%(title)s ${RESOLUTION}.%(ext)s" \
     --print after_move:filepath "$URL" >"$TMPFILE" 2>"$TMPLOG"
+YTDLP_STATUS=$?
 
-  STATUS=$?
+(
   echo "100"
   sleep 0.5
-  exit $STATUS
 ) | zenity --progress \
     --title="PulVid – Изтегляне" \
     --text="Моля, изчакай..." \
@@ -143,34 +142,39 @@ TMPFILE=$(mktemp)
     --auto-close
 
 # Обработка
-if [[ $? -eq 0 ]]; then
+if [[ $YTDLP_STATUS -eq 0 ]]; then
     ORIGINAL_FILE=$(tail -n 1 "$TMPFILE")
+
     DIRPATH=$(dirname "$ORIGINAL_FILE")
     FILENAME=$(basename "$ORIGINAL_FILE")
     EXT="${FILENAME##*.}"
     BASENAME="${FILENAME%.*}"
     FINAL_FILE="$ORIGINAL_FILE"
 
-# Уникализиране, ако файлът съществува
     INDEX=1
-    while [[ -e "$FINAL_FILE" ]]; do
-        FINAL_FILE="$DIRPATH/${BASENAME}-$INDEX.$EXT"
-        INDEX=$((INDEX + 1))
-    done
-
-    if [[ "$FINAL_FILE" != "$ORIGINAL_FILE" ]]; then
-        mv "$ORIGINAL_FILE" "$FINAL_FILE"
+    CANDIDATE="$DIRPATH/${BASENAME}-$INDEX.$EXT"
+    # Предлагаме ново име само ако има колизия с РАЗЛИЧЕН файл
+    if [[ -e "$CANDIDATE" ]]; then
+        while [[ -e "$CANDIDATE" ]]; do
+            CANDIDATE="$DIRPATH/${BASENAME}-$INDEX.$EXT"
+            INDEX=$((INDEX + 1))
+        done
+        mv "$ORIGINAL_FILE" "$CANDIDATE"
+        FINAL_FILE="$CANDIDATE"
     fi
 
-# Конвертиране (ако е избрано и не е mp4)
     CREATED_MP4="no"
     MP4_FILE="$DIRPATH/${BASENAME}.mp4"
     if [[ "$CONVERT_MP4" == "0" && "$EXT" != "mp4" ]]; then
-        ffmpeg -i "$FINAL_FILE" -c:v libx264 -c:a aac -y "$MP4_FILE"
-        CREATED_MP4="yes"
+        if ffmpeg -i "$FINAL_FILE" -c:v libx264 -c:a aac -y "$MP4_FILE"; then
+            CREATED_MP4="yes"
+        else
+            zenity --warning --title="PulVid – Конвертиране" \
+                --text="⚠️ Конвертирането в .mp4 неуспешно.\nФайлът е запазен в оригиналния си формат."
+        fi
     fi
 
-# Финално меню
+    # Финално меню
     OPTIONS=()
     OPTIONS+=("🎬 Пусни видеото")
     [[ "$CREATED_MP4" == "yes" ]] && OPTIONS+=("🎬 Пусни MP4 видеото")
