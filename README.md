@@ -30,7 +30,7 @@ PulVid also requires the latest version of `yt-dlp`, which is automatically down
 1. **Download or clone the repository:**
 
 ```bash
-git clone https://github.com/your-user/PulVid.git
+git clone https://github.com/hmartinov/PulVid.git
 cd PulVid
 ```
 
