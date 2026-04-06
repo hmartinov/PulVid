@@ -8,7 +8,6 @@ DESKTOP_FILE="pulvid.desktop"
 
 echo "== Инсталация на PulVid =="
 echo
-
 echo "⏳ Проверка за зависимости..."
 
 REQUIRED=("ffmpeg" "zenity" "xdg-open" "curl")
@@ -47,6 +46,7 @@ cp "$DESKTOP_FILE" "$DESKTOP_DIR/"
 
 chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
 chmod 644 "$DESKTOP_DIR/$DESKTOP_FILE"
+sed -i "s|Icon=pulvid-icon|Icon=$HOME/.local/share/icons/pulvid-icon.png|" "$DESKTOP_DIR/$DESKTOP_FILE"
 
 # По избор: десктоп икона
 read -p "🖥️ Искаш ли икона на десктопа? (y/n): " ANSWER
@@ -58,6 +58,12 @@ if [[ "$ANSWER" == "y" || "$ANSWER" == "Y" ]]; then
         gio set "$HOME/Desktop/$DESKTOP_FILE" metadata::trusted true 2>/dev/null
     fi
     echo "✅ Икона е добавена на десктопа."
+fi
+
+# Опресняване на менюто
+update-desktop-database "$DESKTOP_DIR"
+if command -v lxpanelctl >/dev/null 2>&1; then
+    lxpanelctl restart
 fi
 
 # Финално съобщение
